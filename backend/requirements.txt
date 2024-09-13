@@ -1,6 +1,0 @@
-ethers==0.1.1
-schedule==1.1.0
-Flask==2.3.2
-psycopg2==2.9.3  # Omit if you're using SQLite
-
-
