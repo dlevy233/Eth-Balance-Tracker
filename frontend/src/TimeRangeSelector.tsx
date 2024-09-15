@@ -7,12 +7,7 @@ interface TimeRangeSelectorProps {
   setEndTime: (time: number) => void;
 }
 
-const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({
-  startTime,
-  endTime,
-  setStartTime,
-  setEndTime,
-}) => {
+const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({ startTime, endTime, setStartTime, setEndTime }) => {
   const handleStartChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setStartTime(new Date(e.target.value).getTime() / 1000);
   };
@@ -22,14 +17,14 @@ const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({
   };
 
   return (
-    <div style={{ marginBottom: '20px', textAlign: 'center' }}>
+    <div>
       <label>
         Start Date:
-        <input type="date" onChange={handleStartChange} />
+        <input type="date" value={new Date(startTime * 1000).toISOString().split('T')[0]} onChange={handleStartChange} />
       </label>
       <label>
         End Date:
-        <input type="date" onChange={handleEndChange} />
+        <input type="date" value={new Date(endTime * 1000).toISOString().split('T')[0]} onChange={handleEndChange} />
       </label>
     </div>
   );

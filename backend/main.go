@@ -4,158 +4,126 @@ import (
     "context"
     "database/sql"
     "encoding/json"
-    "fmt"
     "log"
     "math/big"
     "net/http"
     "os"
-    "strconv"
     "time"
 
+    _ "github.com/mattn/go-sqlite3"
     "github.com/ethereum/go-ethereum/common"
     "github.com/ethereum/go-ethereum/ethclient"
-    _ "github.com/mattn/go-sqlite3"
     "github.com/joho/godotenv"
 )
 
+type Balance struct {
+    Timestamp int64   `json:"timestamp"`
+    Balance   float64 `json:"balance"`
+}
+
+var db *sql.DB
+
 func main() {
-    // Load environment variables from .env file
-    err := godotenv.Load()
-    if err != nil {
-        log.Println("No .env file found, using system environment variables")
-    }
+    godotenv.Load()
 
-    // Get environment variables
-    walletAddress := os.Getenv("WALLET_ADDRESS")
-    if walletAddress == "" {
-        log.Fatal("WALLET_ADDRESS not set")
-    }
-
-    rpcEndpoint := os.Getenv("RPC_ENDPOINT")
-    if rpcEndpoint == "" {
-        log.Fatal("RPC_ENDPOINT not set")
-    }
-
-    queryIntervalStr := os.Getenv("QUERY_INTERVAL")
-    if queryIntervalStr == "" {
-        queryIntervalStr = "60" // default to 60 seconds
-    }
-    queryInterval, err := strconv.Atoi(queryIntervalStr)
-    if err != nil {
-        log.Fatal("Invalid QUERY_INTERVAL:", err)
-    }
-
-    port := os.Getenv("PORT")
-    if port == "" {
-        port = "8080"
-    }
-
-    // Connect to Ethereum client
-    client, err := ethclient.Dial(rpcEndpoint)
-    if err != nil {
-        log.Fatal(err)
-    }
-    defer client.Close()
-
-    // Open database connection
-    db, err := sql.Open("sqlite3", "./balances.db")
+    var err error
+    db, err = sql.Open("sqlite3", "./balances.db")
     if err != nil {
         log.Fatal(err)
     }
     defer db.Close()
 
-    // Create balances table if it doesn't exist
-    createTableSQL := `CREATE TABLE IF NOT EXISTS balances (
+    createTable()
+
+    // Start querying the balance every 60 seconds
+    go periodicallyQueryBalance()
+
+    // Serve balance data via the API
+    http.HandleFunc("/api/balances", getBalancesHandler)
+
+    log.Println("Server running on port 8080")
+    log.Fatal(http.ListenAndServe(":8080", nil))
+}
+
+func createTable() {
+    query := `
+    CREATE TABLE IF NOT EXISTS balances (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         timestamp INTEGER NOT NULL,
-        balance TEXT NOT NULL
+        balance REAL NOT NULL
     );`
-    _, err = db.Exec(createTableSQL)
+    _, err := db.Exec(query)
     if err != nil {
         log.Fatal(err)
     }
-
-    // Start ticker to fetch and store balance periodically
-    ticker := time.NewTicker(time.Duration(queryInterval) * time.Second)
-    defer ticker.Stop()
-
-    walletAddr := common.HexToAddress(walletAddress)
-
-    // Fetch and store balance immediately at startup
-    fetchAndStoreBalance(client, db, walletAddr)
-
-    go func() {
-        for range ticker.C {
-            fetchAndStoreBalance(client, db, walletAddr)
-        }
-    }()
-
-    // Set up HTTP server
-    http.HandleFunc("/api/balances", getBalancesHandler(db))
-
-    fmt.Printf("Server started on port %s\n", port)
-    log.Fatal(http.ListenAndServe(":"+port, nil))
 }
 
-// Function to fetch balance and store it in the database
-func fetchAndStoreBalance(client *ethclient.Client, db *sql.DB, address common.Address) {
-    balance, err := client.BalanceAt(context.Background(), address, nil)
+// Periodically queries the balance and stores it in the database every 60 seconds
+func periodicallyQueryBalance() {
+    for {
+        queryAndStoreBalance()
+        time.Sleep(60 * time.Second) // Sleep for 60 seconds
+    }
+}
+
+func queryAndStoreBalance() {
+    walletAddress := os.Getenv("WALLET_ADDRESS")
+    rpcEndpoint := os.Getenv("RPC_ENDPOINT")
+
+    client, err := ethclient.Dial(rpcEndpoint)
     if err != nil {
-        log.Println("Error fetching balance:", err)
+        log.Println("Error connecting to Ethereum network:", err)
         return
     }
-    _, err = db.Exec("INSERT INTO balances (timestamp, balance) VALUES (?, ?)", time.Now().Unix(), balance.String())
+
+    address := common.HexToAddress(walletAddress)
+    balance, err := client.BalanceAt(context.Background(), address, nil)
+    if err != nil {
+        log.Println("Error querying balance:", err)
+        return
+    }
+
+    ethBalance := new(big.Float).Quo(new(big.Float).SetInt(balance), big.NewFloat(1e18))
+    balanceFloat64, _ := ethBalance.Float64()
+
+    // Store the balance with a timestamp
+    storeBalance(time.Now().Unix(), balanceFloat64)
+    log.Println("Stored new balance:", ethBalance)
+}
+
+func storeBalance(timestamp int64, balance float64) {
+    _, err := db.Exec("INSERT INTO balances (timestamp, balance) VALUES (?, ?)", timestamp, balance)
     if err != nil {
         log.Println("Error storing balance:", err)
     }
 }
 
-// Handler for /api/balances endpoint
-func getBalancesHandler(db *sql.DB) http.HandlerFunc {
-    return func(w http.ResponseWriter, r *http.Request) {
-        start := r.URL.Query().Get("start")
-        end := r.URL.Query().Get("end")
+// Handler to get balances with optional start and end time filtering
+func getBalancesHandler(w http.ResponseWriter, r *http.Request) {
+    startTime := r.URL.Query().Get("start")
+    endTime := r.URL.Query().Get("end")
 
-        // Default to showing the last 24 hours if no parameters are provided
-        var startTime, endTime int64
-        now := time.Now().Unix()
-        if start == "" {
-            startTime = now - 86400 // 24 hours ago
-        } else {
-            startTime, _ = strconv.ParseInt(start, 10, 64)
-        }
-        if end == "" {
-            endTime = now
-        } else {
-            endTime, _ = strconv.ParseInt(end, 10, 64)
-        }
+    query := "SELECT timestamp, balance FROM balances"
+    args := []interface{}{}
 
-        // Query balances within the time range
-        rows, err := db.Query("SELECT timestamp, balance FROM balances WHERE timestamp BETWEEN ? AND ?", startTime, endTime)
-        if err != nil {
-            http.Error(w, err.Error(), http.StatusInternalServerError)
-            return
-        }
-        defer rows.Close()
-
-        var balances []map[string]interface{}
-        for rows.Next() {
-            var timestamp int64
-            var balanceStr string
-            if err := rows.Scan(&timestamp, &balanceStr); err != nil {
-                http.Error(w, err.Error(), http.StatusInternalServerError)
-                return
-            }
-            balanceFloat, _ := new(big.Float).SetString(balanceStr)
-            ethValue := new(big.Float).Quo(balanceFloat, big.NewFloat(1e18)) // Convert Wei to Ether
-
-            balances = append(balances, map[string]interface{}{
-                "timestamp": timestamp,
-                "balance":   ethValue,
-            })
-        }
-
-        w.Header().Set("Content-Type", "application/json")
-        json.NewEncoder(w).Encode(balances)
+    if startTime != "" && endTime != "" {
+        query += " WHERE timestamp BETWEEN ? AND ?"
+        args = append(args, startTime, endTime)
     }
+
+    rows, err := db.Query(query, args...)
+    if err != nil {
+        http.Error(w, "Error fetching balances", http.StatusInternalServerError)
+        return
+    }
+    defer rows.Close()
+
+    var balances []Balance
+    for rows.Next() {
+        var b Balance
+        rows.Scan(&b.Timestamp, &b.Balance)
+        balances = append(balances, b)
+    }
+
+    json.NewEncoder(w).Encode(balances)
 }
