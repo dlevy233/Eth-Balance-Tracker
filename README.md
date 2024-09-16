@@ -1,6 +1,6 @@
 # **ETH Balance Tracker**
 
-A simple app that queries and stores the ETH balance of a configurable Base wallet and displays the data in a time-series graph.
+A simple app that queries and stores the ETH balance of a Base wallet and displays the data in a time-series graph.
 
 ## **Stack**
 - **Frontend**: React, TypeScript, Vite, Recharts
