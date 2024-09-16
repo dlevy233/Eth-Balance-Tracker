@@ -31,7 +31,7 @@ A simple app that queries and stores the ETH balance of a configurable Base wall
     Example `.env`:
     ```bash
     WALLET_ADDRESS=0xYourEthereumWalletAddress
-    RPC_ENDPOINT=https://mainnet.infura.io/v3/your-infura-id
+    RPC_ENDPOINT=https://api.developer.coinbase.com/rpc/v1/base/123
     QUERY_INTERVAL=60
     PORT=8080
     ```
