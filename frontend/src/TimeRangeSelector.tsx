@@ -9,22 +9,30 @@ interface TimeRangeSelectorProps {
 
 const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({ startTime, endTime, setStartTime, setEndTime }) => {
   const handleStartChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setStartTime(new Date(e.target.value).getTime() / 1000);
+    setStartTime(new Date(e.target.value).getTime() / 1000); // Convert to Unix timestamp in seconds
   };
 
   const handleEndChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setEndTime(new Date(e.target.value).getTime() / 1000);
+    setEndTime(new Date(e.target.value).getTime() / 1000); // Convert to Unix timestamp in seconds
   };
 
   return (
     <div>
       <label>
-        Start Date:
-        <input type="date" value={new Date(startTime * 1000).toISOString().split('T')[0]} onChange={handleStartChange} />
+        Start Time:
+        <input
+          type="datetime-local"
+          value={new Date(startTime * 1000).toISOString().slice(0, 16)}
+          onChange={handleStartChange}
+        />
       </label>
       <label>
-        End Date:
-        <input type="date" value={new Date(endTime * 1000).toISOString().split('T')[0]} onChange={handleEndChange} />
+        End Time:
+        <input
+          type="datetime-local"
+          value={new Date(endTime * 1000).toISOString().slice(0, 16)}
+          onChange={handleEndChange}
+        />
       </label>
     </div>
   );

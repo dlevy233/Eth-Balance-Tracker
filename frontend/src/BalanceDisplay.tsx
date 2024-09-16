@@ -35,14 +35,24 @@ const BalanceDisplay: React.FC<BalanceDisplayProps> = ({ balances, startTime, en
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis
               dataKey="timestamp"
-              tickFormatter={(timestamp) => new Date(timestamp * 1000).toLocaleDateString()}
+              tickFormatter={(timestamp) =>
+                new Date(timestamp * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+              }
             />
             <YAxis
               dataKey="balance"
               tickFormatter={(balance) => formatBalance(balance)}
             />
             <Tooltip
-              labelFormatter={(timestamp) => new Date(timestamp * 1000).toLocaleString()}
+              labelFormatter={(timestamp) =>
+                new Date(timestamp * 1000).toLocaleString([], {
+                  year: 'numeric',
+                  month: 'numeric',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })
+              }
             />
             <Line type="monotone" dataKey="balance" stroke="#8884d8" />
           </LineChart>
