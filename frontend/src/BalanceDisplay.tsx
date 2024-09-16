@@ -41,7 +41,7 @@ const BalanceDisplay: React.FC<BalanceDisplayProps> = ({ balances, startTime, en
             />
             <YAxis
               dataKey="balance"
-              tickFormatter={(balance) => formatBalance(balance)}
+              tickFormatter={(balance) => formatBalance(balance).toString()}
             />
             <Tooltip
               labelFormatter={(timestamp) =>
