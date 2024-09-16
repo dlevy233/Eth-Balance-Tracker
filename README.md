@@ -47,21 +47,14 @@ A simple app that queries and stores the ETH balance of a configurable Base wall
     npm run dev
     ```
 
-## **Deployment**
-
-### **Backend Deployment**
-- Host the backend (e.g., Heroku, AWS) and ensure the environment variables are set.
-
-### **Frontend Deployment (Vercel)**
-1. Add `VITE_BACKEND_URL=<Your-Production-Backend-URL>` in Vercel’s environment variables.
-2. Deploy using Vercel.
+The frontend will be available at `http://localhost:5173` and the backend at `http://localhost:8080`.
 
 ## **Environment Variables**
 
-### **Frontend (Vercel)**
-- `VITE_BACKEND_URL`: URL of the backend.
+### **Frontend**
+- `VITE_BACKEND_URL`: URL of the backend (`http://localhost:8080` for local development).
 
-### **Backend (Heroku/Local)**
+### **Backend**
 - `WALLET_ADDRESS`: Ethereum wallet to track.
 - `RPC_ENDPOINT`: Ethereum RPC endpoint.
 - `PORT`: Port the backend server listens on.
