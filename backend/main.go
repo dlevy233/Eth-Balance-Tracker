@@ -8,6 +8,7 @@ import (
     "math/big"
     "net/http"
     "os"
+    "strconv"
     "time"
 
     _ "github.com/mattn/go-sqlite3"
@@ -62,7 +63,13 @@ func createTable() {
 func periodicallyQueryBalance() {
     for {
         queryAndStoreBalance()
-        time.Sleep(60 * time.Second) // Sleep for 60 seconds
+        queryInterval, err := strconv.Atoi(os.Getenv("QUERY_INTERVAL"))
+        if err != nil {
+            // Handle the error or set a default value
+            queryInterval = 60 // Default to 60 seconds if not set or invalid
+        }
+        interval := time.Duration(queryInterval) * time.Second
+        time.Sleep(interval)
     }
 }
 
@@ -88,7 +95,7 @@ func queryAndStoreBalance() {
 
     // Store the balance with a timestamp
     storeBalance(time.Now().Unix(), balanceFloat64)
-    log.Println("Stored new balance:", ethBalance)
+    log.Println("Stored new balance:", balance)
 }
 
 func storeBalance(timestamp int64, balance float64) {
