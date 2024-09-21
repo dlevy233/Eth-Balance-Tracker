@@ -38,7 +38,6 @@ A simple app that queries and stores the ETH balance of a Base wallet and displa
 
 3. Install dependencies and run the backend:
     ```bash
-    go mod tidy
     go run main.go
     ```
 
