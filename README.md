@@ -3,7 +3,7 @@
 A simple app that queries and stores the ETH balance of a Base wallet and displays the data in a time-series graph.
 
 ## **Stack**
-- **Frontend**: React, TypeScript, Vite, Recharts
+- **Frontend**: React, TypeScript, Recharts
 - **Backend**: Go, SQLite, `go-ethereum`
 
 
