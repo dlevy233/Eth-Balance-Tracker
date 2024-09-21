@@ -4,7 +4,8 @@ A simple app that queries and stores the ETH balance of a Base wallet and displa
 
 ## **Stack**
 - **Frontend**: React, TypeScript, Vite, Recharts
-- **Backend**: Go, SQLite, Viem
+- **Backend**: Go, SQLite, `go-ethereum`
+
 
 ## **How It Works**
 1. **Periodic Balance Query**: The Go backend queries the ETH balance of a configurable wallet at a specified interval (default: every minute).
